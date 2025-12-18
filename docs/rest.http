@@ -1,0 +1,171 @@
+# AIDOC API Test Requests
+# Use with VS Code REST Client extension or similar
+
+### Variables
+@baseUrl = http://localhost:3000/api
+@grpcUrl = localhost:50051
+
+# ═══════════════════════════════════════════════════════════════
+# HEALTH CHECKS
+# ═══════════════════════════════════════════════════════════════
+
+### Basic health check
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+### Detailed health status (with circuit breakers)
+GET {{baseUrl}}/health/status
+Content-Type: application/json
+
+# ═══════════════════════════════════════════════════════════════
+# OURA RING
+# ═══════════════════════════════════════════════════════════════
+
+### Get Oura health data
+GET {{baseUrl}}/oura
+Content-Type: application/json
+
+### Start OAuth2 flow (redirects to Oura)
+GET {{baseUrl}}/oura/connect
+
+# ═══════════════════════════════════════════════════════════════
+# GRAPHQL
+# ═══════════════════════════════════════════════════════════════
+
+### Create a user
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "mutation CreateUser($input: CreateUserInput!) { createUser(input: $input) { id email fullName createdAt } }",
+  "variables": {
+    "input": {
+      "email": "test@example.com",
+      "fullName": "Test User"
+    }
+  }
+}
+
+### Get all users
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "{ users { id email fullName } }"
+}
+
+### Get user by ID
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query GetUser($id: ID!) { user(id: $id) { id email fullName createdAt } }",
+  "variables": {
+    "id": "user-1"
+  }
+}
+
+### Save health data
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "mutation SaveHealthData($input: HealthDataInput!) { saveHealthData(input: $input) { id type value unit source } }",
+  "variables": {
+    "input": {
+      "userId": "user-1",
+      "type": "STEPS",
+      "value": 8500,
+      "unit": "steps",
+      "source": "oura_ring"
+    }
+  }
+}
+
+### Get health data for user
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query GetHealthData($userId: ID!) { healthData(userId: $userId) { id type value unit source createdAt } }",
+  "variables": {
+    "userId": "user-1"
+  }
+}
+
+### Create health goal
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "mutation CreateGoal($input: HealthGoalInput!) { createHealthGoal(input: $input) { id type targetValue } }",
+  "variables": {
+    "input": {
+      "userId": "user-1",
+      "type": "STEPS",
+      "targetValue": 10000,
+      "unit": "steps"
+    }
+  }
+}
+
+### Get health goals
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query GetGoals($userId: ID!) { healthGoals(userId: $userId) { id type targetValue currentValue progress } }",
+  "variables": {
+    "userId": "user-1"
+  }
+}
+
+### GraphQL Introspection
+POST {{baseUrl}}/graphql
+Content-Type: application/json
+
+{
+  "query": "{ __schema { types { name } } }"
+}
+
+# ═══════════════════════════════════════════════════════════════
+# AI CHAT (SSE)
+# ═══════════════════════════════════════════════════════════════
+
+### Chat info
+GET {{baseUrl}}/chat
+
+### Chat with AI (streaming)
+POST {{baseUrl}}/chat
+Content-Type: application/json
+
+{
+  "messages": [
+    {"role": "system", "content": "You are AIDOC, a helpful health assistant."},
+    {"role": "user", "content": "How can I improve my sleep quality?"}
+  ]
+}
+
+### Health insights request
+POST {{baseUrl}}/chat
+Content-Type: application/json
+
+{
+  "messages": [
+    {"role": "system", "content": "You are AIDOC analyzing health data."},
+    {"role": "user", "content": "My sleep score dropped from 85 to 72 this week. What could be the cause?"}
+  ]
+}
+
+# ═══════════════════════════════════════════════════════════════
+# gRPC (use grpcurl)
+# ═══════════════════════════════════════════════════════════════
+
+# List services:
+# grpcurl -plaintext {{grpcUrl}} list
+
+# Get user:
+# grpcurl -plaintext -d '{"id": "user-1"}' {{grpcUrl}} aidoc.UserService/GetUser
+
+# Batch upload health data:
+# grpcurl -plaintext -d '{"data": [{"userId": "user-1", "type": "STEPS", "value": 5000}]}' {{grpcUrl}} aidoc.HealthDataService/BatchUpload

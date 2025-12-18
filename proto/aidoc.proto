@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package aidoc;
+
+option java_multiple_files = true;
+option java_package = "com.aidoc.grpc";
+
+// Health Data Service - For mobile and watch clients
+service HealthDataService {
+  // Sync health data from device to backend
+  rpc SyncHealthData(stream HealthDataRequest) returns (SyncResponse);
+  
+  // Get health data for a date range
+  rpc GetHealthData(GetHealthDataRequest) returns (stream HealthData);
+  
+  // Stream live health metrics (heart rate, etc.)
+  rpc StreamMetrics(StreamMetricsRequest) returns (stream HealthData);
+  
+  // Batch upload health data
+  rpc BatchUpload(BatchUploadRequest) returns (BatchUploadResponse);
+}
+
+// User Service
+service UserService {
+  // Get user profile
+  rpc GetUser(GetUserRequest) returns (User);
+  
+  // Update user profile
+  rpc UpdateUser(UpdateUserRequest) returns (User);
+  
+  // Get health goals
+  rpc GetHealthGoals(GetHealthGoalsRequest) returns (HealthGoalsResponse);
+  
+  // Create health goal
+  rpc CreateHealthGoal(CreateHealthGoalRequest) returns (HealthGoal);
+}
+
+// AI Service - For chat (unary for simple queries, SSE still better for streaming)
+service AIService {
+  // Get AI insights based on recent health data
+  rpc GetInsights(GetInsightsRequest) returns (InsightsResponse);
+  
+  // Simple chat (non-streaming for voice commands)
+  rpc Chat(ChatRequest) returns (ChatResponse);
+}
+
+// ============ Messages ============
+
+// Health Data
+message HealthData {
+  string id = 1;
+  string user_id = 2;
+  HealthDataSource source = 3;
+  HealthDataType type = 4;
+  double value = 5;
+  string unit = 6;
+  int64 timestamp_ms = 7;  // Unix timestamp in milliseconds
+  map<string, string> metadata = 8;
+}
+
+enum HealthDataSource {
+  HEALTH_DATA_SOURCE_UNSPECIFIED = 0;
+  HEALTH_DATA_SOURCE_OURA_RING = 1;
+  HEALTH_DATA_SOURCE_APPLE_HEALTH = 2;
+  HEALTH_DATA_SOURCE_APPLE_WATCH = 3;
+  HEALTH_DATA_SOURCE_MANUAL = 4;
+}
+
+enum HealthDataType {
+  HEALTH_DATA_TYPE_UNSPECIFIED = 0;
+  HEALTH_DATA_TYPE_STEPS = 1;
+  HEALTH_DATA_TYPE_HEART_RATE = 2;
+  HEALTH_DATA_TYPE_SLEEP_DURATION = 3;
+  HEALTH_DATA_TYPE_SLEEP_QUALITY = 4;
+  HEALTH_DATA_TYPE_HRV = 5;
+  HEALTH_DATA_TYPE_CALORIES = 6;
+  HEALTH_DATA_TYPE_ACTIVITY_SCORE = 7;
+  HEALTH_DATA_TYPE_READINESS_SCORE = 8;
+}
+
+// User
+message User {
+  string id = 1;
+  string email = 2;
+  string full_name = 3;
+  string avatar_url = 4;
+  int64 created_at_ms = 5;
+  int64 updated_at_ms = 6;
+}
+
+// Health Goal
+message HealthGoal {
+  string id = 1;
+  string user_id = 2;
+  HealthDataType type = 3;
+  double target = 4;
+  string unit = 5;
+  int64 created_at_ms = 6;
+}
+
+// ============ Request/Response Messages ============
+
+// Health Data Service
+message HealthDataRequest {
+  HealthData data = 1;
+}
+
+message SyncResponse {
+  int32 synced_count = 1;
+  repeated string failed_ids = 2;
+  string message = 3;
+}
+
+message GetHealthDataRequest {
+  string user_id = 1;
+  int64 start_time_ms = 2;
+  int64 end_time_ms = 3;
+  repeated HealthDataType types = 4;  // Filter by types, empty = all
+}
+
+message StreamMetricsRequest {
+  string user_id = 1;
+  repeated HealthDataType types = 2;
+}
+
+message BatchUploadRequest {
+  repeated HealthData data = 1;
+}
+
+message BatchUploadResponse {
+  int32 success_count = 1;
+  int32 failure_count = 2;
+  repeated string failed_ids = 3;
+}
+
+// User Service
+message GetUserRequest {
+  string user_id = 1;
+}
+
+message UpdateUserRequest {
+  string user_id = 1;
+  optional string full_name = 2;
+  optional string avatar_url = 3;
+}
+
+message GetHealthGoalsRequest {
+  string user_id = 1;
+}
+
+message HealthGoalsResponse {
+  repeated HealthGoal goals = 1;
+}
+
+message CreateHealthGoalRequest {
+  string user_id = 1;
+  HealthDataType type = 2;
+  double target = 3;
+  string unit = 4;
+}
+
+// AI Service
+message GetInsightsRequest {
+  string user_id = 1;
+  int32 days = 2;  // Number of days to analyze
+}
+
+message InsightsResponse {
+  string insights = 1;
+  int64 generated_at_ms = 2;
+}
+
+message ChatRequest {
+  repeated ChatMessage messages = 1;
+}
+
+message ChatMessage {
+  ChatRole role = 1;
+  string content = 2;
+}
+
+enum ChatRole {
+  CHAT_ROLE_UNSPECIFIED = 0;
+  CHAT_ROLE_USER = 1;
+  CHAT_ROLE_ASSISTANT = 2;
+  CHAT_ROLE_SYSTEM = 3;
+}
+
+message ChatResponse {
+  string response = 1;
+}

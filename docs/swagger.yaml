@@ -1,0 +1,286 @@
+openapi: 3.0.3
+info:
+  title: AIDOC API
+  description: |
+    AI Health Tracker API - Multi-protocol architecture with resilience patterns:
+    - **GraphQL** (`/api/graphql`) - Web app queries
+    - **SSE** (`/api/chat`) - AI chat streaming
+    - **REST** (`/api/health`, `/api/oura`) - Health checks & Oura integration
+    - **gRPC** (`:50051`) - Mobile/Watch clients
+
+    **Resilience Features:**
+    - Circuit breakers for external services
+    - Automatic fallbacks (LiteLLM)
+    - Response caching
+    - Retry with exponential backoff
+  version: 0.0.1
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local HTTP
+  - url: grpc://localhost:50051
+    description: Local gRPC
+
+paths:
+  /health:
+    get:
+      summary: Basic health check
+      operationId: healthCheck
+      tags: [System]
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /health/status:
+    get:
+      summary: Detailed health status with circuit breaker states
+      operationId: healthStatus
+      tags: [System]
+      responses:
+        "200":
+          description: All services healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DetailedHealthResponse"
+        "503":
+          description: Some services degraded
+
+  /graphql:
+    post:
+      summary: GraphQL endpoint
+      operationId: graphql
+      tags: [GraphQL]
+      description: Apollo Server GraphQL endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GraphQLRequest"
+      responses:
+        "200":
+          description: GraphQL response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphQLResponse"
+
+  /chat:
+    get:
+      summary: Chat endpoint info
+      operationId: chatInfo
+      tags: [AI Chat]
+      responses:
+        "200":
+          description: Endpoint info
+    post:
+      summary: Stream AI chat response
+      operationId: chatStream
+      tags: [AI Chat]
+      description: SSE streaming response with circuit breaker protection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        "503":
+          description: AI unavailable (circuit open)
+
+  /oura:
+    get:
+      summary: Fetch Oura Ring health data
+      operationId: getOuraData
+      tags: [Oura Ring]
+      description: Returns sleep, activity, readiness data from Oura Cloud API
+      responses:
+        "200":
+          description: Health data from Oura Ring
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OuraDataResponse"
+        "401":
+          description: Not authenticated with Oura
+        "500":
+          description: Oura API error
+
+  /oura/connect:
+    get:
+      summary: Start OAuth2 flow with Oura
+      operationId: ouraConnect
+      tags: [Oura Ring]
+      description: Redirects to Oura authorization page
+      responses:
+        "302":
+          description: Redirect to Oura OAuth
+        "500":
+          description: OAuth configuration error
+
+  /oura/callback:
+    get:
+      summary: OAuth2 callback from Oura
+      operationId: ouraCallback
+      tags: [Oura Ring]
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirect to app after successful auth
+        "400":
+          description: Invalid state or code
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status: { type: string, example: ok }
+        timestamp: { type: string, format: date-time }
+        version: { type: string, example: 0.0.1 }
+
+    DetailedHealthResponse:
+      type: object
+      properties:
+        status: { type: string, enum: [healthy, degraded, error] }
+        timestamp: { type: string, format: date-time }
+        services:
+          type: object
+          properties:
+            ai:
+              type: object
+              properties:
+                available: { type: boolean }
+                provider: { type: string }
+                circuitBreaker:
+                  { $ref: "#/components/schemas/CircuitBreakerStats" }
+            database:
+              type: object
+              properties:
+                connected: { type: boolean }
+                circuitBreaker:
+                  { $ref: "#/components/schemas/CircuitBreakerStats" }
+        uptime: { type: number }
+
+    CircuitBreakerStats:
+      type: object
+      properties:
+        state: { type: string, enum: [CLOSED, OPEN, HALF_OPEN] }
+        failures: { type: integer }
+        totalCalls: { type: integer }
+        lastFailure: { type: string, format: date-time, nullable: true }
+
+    GraphQLRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string }
+        variables: { type: object }
+        operationName: { type: string }
+
+    GraphQLResponse:
+      type: object
+      properties:
+        data: { type: object }
+        errors: { type: array }
+
+    ChatRequest:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items:
+            type: object
+            properties:
+              role: { type: string, enum: [user, assistant, system] }
+              content: { type: string }
+
+    OuraDataResponse:
+      type: object
+      properties:
+        sleep:
+          type: array
+          items:
+            type: object
+            properties:
+              day: { type: string }
+              score: { type: integer }
+              totalSleep: { type: number }
+        activity:
+          type: array
+          items:
+            type: object
+            properties:
+              day: { type: string }
+              steps: { type: integer }
+              calories: { type: integer }
+        readiness:
+          type: array
+          items:
+            type: object
+            properties:
+              day: { type: string }
+              score: { type: integer }
+
+tags:
+  - name: System
+    description: Health checks and monitoring
+  - name: GraphQL
+    description: Structured data queries
+  - name: AI Chat
+    description: SSE streaming chat with LiteLLM
+  - name: Oura Ring
+    description: Oura Ring Cloud API integration
+
+x-grpc-services:
+  HealthDataService:
+    methods:
+      - name: SyncHealthData
+        type: client-streaming
+        description: Stream health data from device
+      - name: GetHealthData
+        type: server-streaming
+        description: Stream health data to device
+      - name: BatchUpload
+        type: unary
+        description: Bulk upload
+  UserService:
+    methods:
+      - name: GetUser
+        type: unary
+      - name: UpdateUser
+        type: unary
+      - name: GetHealthGoals
+        type: unary
+      - name: CreateHealthGoal
+        type: unary
+  AIService:
+    methods:
+      - name: GetInsights
+        type: unary
+      - name: Chat
+        type: unary
