@@ -17,7 +17,7 @@
     "grpc:serve": "npx tsx scripts/start-grpc.ts"
   },
   "dependencies": {
-    "@apollo/server": "^5.2.0",
+    "@apollo/server": "^5.4.0",
     "@as-integrations/next": "^4.1.0",
     "@grpc/grpc-js": "^1.14.3",
     "@grpc/proto-loader": "^0.8.0",
