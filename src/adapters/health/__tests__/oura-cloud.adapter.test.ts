@@ -14,7 +14,7 @@ describe('OuraCloudAdapter', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        adapter = new OuraCloudAdapter('test-token');
+        adapter = new OuraCloudAdapter({ accessToken: 'test-token' });
     });
 
     describe('getSourceName', () => {
@@ -85,7 +85,7 @@ describe('OuraCloudAdapter', () => {
 
 describe('OuraCloudAdapter without token', () => {
     it('should handle missing token gracefully', async () => {
-        const adapter = new OuraCloudAdapter('');
+        const adapter = new OuraCloudAdapter({ accessToken: '' });
         const data = await adapter.readData();
         expect(data).toEqual([]);
     });

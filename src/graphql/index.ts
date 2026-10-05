@@ -1,2 +1,3 @@
 export { typeDefs } from './schema';
-export { resolvers, GraphQLContext } from './resolvers';
+export { resolvers } from './resolvers';
+export type { GraphQLContext } from './resolvers';

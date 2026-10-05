@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllCircuitBreakerStats } from '@/utils/circuit-breaker';
-import { getAIAdapter, getDatabaseAdapter } from '@/adapters';
+import { getAIAdapter, getDatabaseAdapter } from '@/adapters/factory';
 
 export async function GET(_request: NextRequest) {
     try {

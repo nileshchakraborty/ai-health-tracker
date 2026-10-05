@@ -68,7 +68,7 @@ export class OuraCloudAdapter implements HealthDataPort {
     /**
      * Set date range for data fetching
      */
-    setDateRange(start: Date, end: Date): void {
+    setDateRange(start?: Date, end?: Date): void {
         this.startDate = start;
         this.endDate = end;
     }
