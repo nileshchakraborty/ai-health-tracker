@@ -99,7 +99,7 @@ describe('LiteLLMAdapter', () => {
             });
 
             const healthData = [
-                { id: '1', userId: 'user-1', type: 'STEPS', value: 5000, unit: 'steps', source: 'oura_ring', createdAt: new Date(), timestampMs: Date.now() },
+                { id: '1', userId: 'user-1', type: 'steps' as const, value: 5000, unit: 'steps', source: 'oura_ring' as const, timestamp: new Date() },
             ];
 
             const insights = await adapter.getInsights(healthData);

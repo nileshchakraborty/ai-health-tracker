@@ -1,6 +1,6 @@
-export { DatabasePort } from './database.port';
-export { AIPort, AIConfig } from './ai.port';
-export {
+export type { DatabasePort } from './database.port';
+export type { AIPort, AIConfig } from './ai.port';
+export type {
     HealthDataPort,
     BluetoothHealthDevice,
     BluetoothDevice

@@ -28,11 +28,11 @@ export async function GET(request: NextRequest) {
         const adapter = new OuraCloudAdapter({ accessToken });
         await adapter.connect();
 
-        const readings = await adapter.readData(
-            'current-user',
+        adapter.setDateRange(
             startDate ? new Date(startDate) : undefined,
             endDate ? new Date(endDate) : undefined
         );
+        const readings = await adapter.readData();
 
         await adapter.disconnect();
 
