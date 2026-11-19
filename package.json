@@ -17,7 +17,7 @@
     "grpc:serve": "npx tsx scripts/start-grpc.ts"
   },
   "dependencies": {
-    "@apollo/server": "^5.5.1",
+    "@apollo/server": "^5.5.2",
     "@as-integrations/next": "^4.1.0",
     "@grpc/grpc-js": "^1.14.7",
     "@grpc/proto-loader": "^0.8.1",
@@ -40,7 +40,7 @@
     "eslint": "^8.57.0",
     "eslint-config-next": "^14.2.35",
     "jsdom": "^25.0.0",
-    "postcss": "^8.5.32",
+    "postcss": "^8.5.33",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.6.0",
     "vitest": "^4.1.12"
